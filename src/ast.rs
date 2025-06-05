@@ -10,8 +10,6 @@
 // <array> ::= '[' [ <json> *(', ' <json>) ] ']' ; A sequence of JSON values separated by commas
 // <object> ::= '{' [ <member> *(', ' <member>) ] '}' ; A sequence of 'members'
 // <member> ::= <string> ': ' <json> ; A pair consisting of a name, and a JSON value
-//
-//
 
 pub enum JsonValue {
     Primitive(Primitive),

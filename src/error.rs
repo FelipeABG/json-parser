@@ -1,11 +1,16 @@
 pub type Result<T> = std::result::Result<T, ParseError>;
 
+#[derive(Debug)]
 pub struct ParseError {
     line: usize,
     kind: ParseErrorKind,
 }
 
-pub enum ParseErrorKind {}
+#[derive(Debug)]
+pub enum ParseErrorKind {
+    InvalidToken,
+    InvalidStringChar,
+}
 
 impl ParseError {
     pub fn new(line: usize, kind: ParseErrorKind) -> Self {

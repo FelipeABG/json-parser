@@ -13,7 +13,6 @@ pub struct TokenStream<'a> {
 pub struct Token {
     kind: TokenKind,
     line: usize,
-    lexeme: String,
 }
 
 #[derive(Debug, PartialEq)]
@@ -34,8 +33,8 @@ pub enum TokenKind {
 }
 
 impl Token {
-    pub fn new(kind: TokenKind, line: usize, lexeme: String) -> Self {
-        Self { kind, line, lexeme }
+    pub fn new(kind: TokenKind, line: usize) -> Self {
+        Self { kind, line }
     }
 }
 
@@ -82,21 +81,9 @@ impl<'a> TokenStream<'a> {
             .map_err(|_| ParseError::new(self.line, ParseErrorKind::InvalidString))?;
 
         match bool_lexeme {
-            "true" => self.tokens.push(Token::new(
-                TokenKind::True,
-                self.line,
-                bool_lexeme.to_string(),
-            )),
-            "false" => self.tokens.push(Token::new(
-                TokenKind::False,
-                self.line,
-                bool_lexeme.to_string(),
-            )),
-            "null" => self.tokens.push(Token::new(
-                TokenKind::Null,
-                self.line,
-                bool_lexeme.to_string(),
-            )),
+            "true" => self.tokens.push(Token::new(TokenKind::True, self.line)),
+            "false" => self.tokens.push(Token::new(TokenKind::False, self.line)),
+            "null" => self.tokens.push(Token::new(TokenKind::Null, self.line)),
             _ => return Err(ParseError::new(self.line, ParseErrorKind::InvalidValue)),
         }
 
@@ -122,7 +109,6 @@ impl<'a> TokenStream<'a> {
                     .map_err(|_| ParseError::new(self.line, ParseErrorKind::InvalidNumber))?,
             ),
             self.line,
-            number_lexeme,
         ));
 
         Ok(())
@@ -154,22 +140,15 @@ impl<'a> TokenStream<'a> {
             .map_err(|_| ParseError::new(self.line, ParseErrorKind::InvalidString))?
             .to_string();
 
-        self.tokens.push(Token::new(
-            TokenKind::String(string.clone()),
-            self.line,
-            string,
-        ));
+        self.tokens
+            .push(Token::new(TokenKind::String(string.clone()), self.line));
 
         self.pointer += 1;
 
         Ok(())
     }
     fn single_token(&mut self, kind: TokenKind) {
-        self.tokens.push(Token::new(
-            kind,
-            self.line,
-            self.char_at_pointer().to_string(),
-        ));
+        self.tokens.push(Token::new(kind, self.line));
         self.pointer += 1;
     }
 
@@ -187,19 +166,13 @@ mod token_test {
     use std::fs;
 
     use super::TokenStream;
-    use crate::{
-        error::ParseError,
-        token::{Token, TokenKind},
-    };
+    use crate::token::{Token, TokenKind};
 
     #[test]
     fn test_single_token() {
         let ts = TokenStream::build(",:{}[]").unwrap();
         assert_eq!(ts.tokens.len(), 6);
-        assert_eq!(
-            ts.tokens[0],
-            Token::new(TokenKind::Comma, 1, ",".to_string())
-        )
+        assert_eq!(ts.tokens[0], Token::new(TokenKind::Comma, 1))
     }
 
     #[test]
@@ -208,11 +181,7 @@ mod token_test {
         assert_eq!(ts.tokens.len(), 1);
         assert_eq!(
             ts.tokens[0],
-            Token::new(
-                TokenKind::String(String::from("\"Cleitonrasta\"")),
-                1,
-                "\"Cleitonrasta\"".to_string()
-            )
+            Token::new(TokenKind::String(String::from("\"Cleitonrasta\"")), 1,)
         )
     }
 
@@ -220,20 +189,14 @@ mod token_test {
     fn test_number() {
         let ts = TokenStream::build("64").unwrap();
         assert_eq!(ts.tokens.len(), 1);
-        assert_eq!(
-            ts.tokens[0],
-            Token::new(TokenKind::Number(64.0), 1, "64".to_string())
-        )
+        assert_eq!(ts.tokens[0], Token::new(TokenKind::Number(64.0), 1))
     }
 
     #[test]
     fn test_literals() {
         let ts = TokenStream::build("true false null").unwrap();
         assert_eq!(ts.tokens.len(), 3);
-        assert_eq!(
-            ts.tokens[0],
-            Token::new(TokenKind::True, 1, "true".to_string())
-        )
+        assert_eq!(ts.tokens[0], Token::new(TokenKind::True, 1))
     }
 
     #[test]

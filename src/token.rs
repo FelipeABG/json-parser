@@ -1,6 +1,5 @@
-use std::str::from_utf8;
-
 use crate::error::{ParseError, ParseErrorKind, Result};
+use std::str::from_utf8;
 
 #[derive(Debug)]
 pub struct TokenStream<'a> {
@@ -25,8 +24,13 @@ pub enum TokenKind {
     RightSquareBracket,
     Comma,
     Colon,
+
     String(String),
     Number(f64),
+
+    True,
+    False,
+    Null,
 }
 
 impl Token {
@@ -52,10 +56,13 @@ impl<'a> TokenStream<'a> {
                 ']' => stream.single_token(TokenKind::RightSquareBracket),
                 ',' => stream.single_token(TokenKind::Comma),
                 ':' => stream.single_token(TokenKind::Colon),
-                '"' => stream.parse_string()?,
-                ' ' => {
+                '"' => stream.tokenize_string()?,
+                ' ' => stream.pointer += 1,
+                char if char.is_ascii_digit() => stream.tokenize_number()?,
+                char if char.is_ascii_alphabetic() => stream.tokenize_literal()?,
+                '\n' | '\r' | '\t' => {
                     stream.pointer += 1;
-                    continue;
+                    stream.line += 1
                 }
                 _ => return Err(ParseError::new(stream.line, ParseErrorKind::InvalidToken)),
             };
@@ -64,17 +71,80 @@ impl<'a> TokenStream<'a> {
         Ok(stream)
     }
 
-    fn parse_string(&mut self) -> Result<()> {
+    fn tokenize_literal(&mut self) -> Result<()> {
+        let start = self.pointer;
+
+        while !self.end_of_stream() && self.char_at_pointer().is_ascii_alphabetic() {
+            self.pointer += 1;
+        }
+
+        let bool_lexeme = from_utf8(&self.source.as_bytes()[start..self.pointer])
+            .map_err(|_| ParseError::new(self.line, ParseErrorKind::InvalidString))?;
+
+        match bool_lexeme {
+            "true" => self.tokens.push(Token::new(
+                TokenKind::True,
+                self.line,
+                bool_lexeme.to_string(),
+            )),
+            "false" => self.tokens.push(Token::new(
+                TokenKind::False,
+                self.line,
+                bool_lexeme.to_string(),
+            )),
+            "null" => self.tokens.push(Token::new(
+                TokenKind::Null,
+                self.line,
+                bool_lexeme.to_string(),
+            )),
+            _ => return Err(ParseError::new(self.line, ParseErrorKind::InvalidValue)),
+        }
+
+        Ok(())
+    }
+
+    fn tokenize_number(&mut self) -> Result<()> {
+        let start = self.pointer;
+
+        //TODO: handle float numbers
+        while !self.end_of_stream() && self.char_at_pointer().is_ascii_digit() {
+            self.pointer += 1;
+        }
+
+        let number_lexeme = from_utf8(&self.source.as_bytes()[start..self.pointer])
+            .map_err(|_| ParseError::new(self.line, ParseErrorKind::InvalidString))?
+            .to_string();
+
+        self.tokens.push(Token::new(
+            TokenKind::Number(
+                number_lexeme
+                    .parse()
+                    .map_err(|_| ParseError::new(self.line, ParseErrorKind::InvalidNumber))?,
+            ),
+            self.line,
+            number_lexeme,
+        ));
+
+        Ok(())
+    }
+
+    fn tokenize_string(&mut self) -> Result<()> {
         let start = self.pointer;
 
         self.pointer += 1;
         //TODO: handle unclosed strings
         while self.char_at_pointer() != '"' {
+            if self.char_at_pointer() == '\n' {
+                return Err(ParseError::new(
+                    self.line,
+                    ParseErrorKind::UnterminatedString,
+                ));
+            }
             self.pointer += 1;
         }
 
         let string = from_utf8(&self.source.as_bytes()[start..=self.pointer])
-            .map_err(|_| ParseError::new(self.line, ParseErrorKind::InvalidStringChar))?
+            .map_err(|_| ParseError::new(self.line, ParseErrorKind::InvalidString))?
             .to_string();
 
         self.tokens.push(Token::new(
@@ -82,7 +152,11 @@ impl<'a> TokenStream<'a> {
             self.line,
             string,
         ));
-        self.pointer += 1;
+
+        if !self.end_of_stream() {
+            self.pointer += 1;
+        }
+
         Ok(())
     }
 
@@ -96,14 +170,7 @@ impl<'a> TokenStream<'a> {
     }
 
     fn end_of_stream(&self) -> bool {
-        if self.source.len() > self.pointer {
-            return false;
-        }
-        true
-    }
-
-    fn char_at(&self, idx: usize) -> char {
-        self.source.as_bytes()[idx] as char
+        !(self.source.len() > self.pointer)
     }
 
     fn char_at_pointer(&self) -> char {
@@ -113,6 +180,8 @@ impl<'a> TokenStream<'a> {
 
 #[cfg(test)]
 mod token_test {
+    use std::fs;
+
     use super::TokenStream;
     use crate::token::{Token, TokenKind};
 
@@ -138,5 +207,32 @@ mod token_test {
                 "\"Cleitonrasta\"".to_string()
             )
         )
+    }
+
+    #[test]
+    fn test_number() {
+        let ts = TokenStream::build("64").unwrap();
+        assert_eq!(ts.tokens.len(), 1);
+        assert_eq!(
+            ts.tokens[0],
+            Token::new(TokenKind::Number(64.0), 1, "64".to_string())
+        )
+    }
+
+    #[test]
+    fn test_literals() {
+        let ts = TokenStream::build("true false null").unwrap();
+        assert_eq!(ts.tokens.len(), 3);
+        assert_eq!(
+            ts.tokens[0],
+            Token::new(TokenKind::True, 1, "true".to_string())
+        )
+    }
+
+    #[test]
+    fn test_full_syntax() {
+        let string = fs::read_to_string("test.json").unwrap();
+        let ts = TokenStream::build(&string).unwrap();
+        println!("{ts:#?}")
     }
 }

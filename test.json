@@ -1,0 +1,11 @@
+{
+  "name": "Alice",
+  "age": 30,
+  "isStudent": false,
+  "skills": ["Rust", "JavaScript", "Python"],
+  "address": {
+    "street": "123 Maple Street",
+    "city": "Wonderland",
+    "zip": "12345"
+  }
+}

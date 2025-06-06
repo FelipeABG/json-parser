@@ -9,7 +9,10 @@ pub struct ParseError {
 #[derive(Debug)]
 pub enum ParseErrorKind {
     InvalidToken,
-    InvalidStringChar,
+    InvalidString,
+    InvalidNumber,
+    InvalidValue,
+    UnterminatedString,
 }
 
 impl ParseError {

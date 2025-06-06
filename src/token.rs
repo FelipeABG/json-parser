@@ -132,8 +132,8 @@ impl<'a> TokenStream<'a> {
         let start = self.pointer;
 
         self.pointer += 1;
-        //TODO: handle unclosed strings
-        while self.char_at_pointer() != '"' {
+
+        while !self.end_of_stream() && self.char_at_pointer() != '"' {
             if self.char_at_pointer() == '\n' {
                 return Err(ParseError::new(
                     self.line,
@@ -141,6 +141,13 @@ impl<'a> TokenStream<'a> {
                 ));
             }
             self.pointer += 1;
+        }
+
+        if self.end_of_stream() {
+            return Err(ParseError::new(
+                self.line,
+                ParseErrorKind::UnterminatedString,
+            ));
         }
 
         let string = from_utf8(&self.source.as_bytes()[start..=self.pointer])
@@ -153,13 +160,10 @@ impl<'a> TokenStream<'a> {
             string,
         ));
 
-        if !self.end_of_stream() {
-            self.pointer += 1;
-        }
+        self.pointer += 1;
 
         Ok(())
     }
-
     fn single_token(&mut self, kind: TokenKind) {
         self.tokens.push(Token::new(
             kind,
@@ -183,7 +187,10 @@ mod token_test {
     use std::fs;
 
     use super::TokenStream;
-    use crate::token::{Token, TokenKind};
+    use crate::{
+        error::ParseError,
+        token::{Token, TokenKind},
+    };
 
     #[test]
     fn test_single_token() {
@@ -232,7 +239,11 @@ mod token_test {
     #[test]
     fn test_full_syntax() {
         let string = fs::read_to_string("test.json").unwrap();
-        let ts = TokenStream::build(&string).unwrap();
-        println!("{ts:#?}")
+        TokenStream::build(&string).unwrap();
+    }
+
+    #[test]
+    fn test_errors() {
+        assert!(TokenStream::build("\"Cleitonrasta").is_err())
     }
 }

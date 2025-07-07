@@ -13,6 +13,7 @@ pub enum ParseErrorKind {
     InvalidNumber,
     InvalidValue,
     UnterminatedString,
+    EndOfStream,
 }
 
 impl ParseError {

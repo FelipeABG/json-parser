@@ -265,4 +265,19 @@ mod token_test {
     fn test_errors() {
         assert!(TokenStream::new("\"Cleitonrasta").next().is_err())
     }
+
+    #[test]
+    fn test_peek_does_not_advance() {
+        let mut ts = TokenStream::new("true false");
+
+        let peeked = ts.peek().unwrap();
+        let next = ts.next().unwrap();
+
+        assert_eq!(peeked, next);
+
+        let peeked = ts.peek().unwrap();
+        let next = ts.next().unwrap();
+
+        assert_eq!(peeked, next);
+    }
 }

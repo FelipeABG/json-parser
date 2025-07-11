@@ -74,6 +74,17 @@ impl<'a> TokenStream<'a> {
         }
     }
 
+    pub fn peek(&mut self) -> Result<Token> {
+        let previous_pointer = self.pointer;
+        let previous_line = self.line;
+
+        let result = self.next();
+
+        self.pointer = previous_pointer;
+        self.line = previous_line;
+        result
+    }
+
     fn tokenize_literal(&mut self) -> Result<Token> {
         let start = self.pointer;
 

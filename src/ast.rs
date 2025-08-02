@@ -11,11 +11,13 @@
 // <object> ::= '{' [ <member> *(', ' <member>) ] '}' ; A sequence of 'members'
 // <member> ::= <string> ': ' <json> ; A pair consisting of a name, and a JSON value
 
+#[derive(Debug, PartialEq)]
 pub enum JsonValue {
     Primitive(Primitive),
     Container(Container),
 }
 
+#[derive(Debug, PartialEq)]
 pub enum Primitive {
     Number(f64),
     String(String),
@@ -23,11 +25,13 @@ pub enum Primitive {
     Null,
 }
 
+#[derive(Debug, PartialEq)]
 pub enum Container {
     Object(Vec<Member>),
     Array(Vec<JsonValue>),
 }
 
+#[derive(Debug, PartialEq)]
 pub struct Member {
     name: String,
     value: JsonValue,

@@ -10,8 +10,8 @@ pub struct TokenStream<'a> {
 
 #[derive(Debug, PartialEq)]
 pub struct Token {
-    kind: TokenKind,
-    line: usize,
+    pub kind: TokenKind,
+    pub line: usize,
 }
 
 #[derive(Debug, PartialEq)]
@@ -129,7 +129,7 @@ impl<'a> TokenStream<'a> {
         let start = self.pointer;
 
         self.pointer += 1;
-
+        // TODO: add support for `''` strings
         while !self.end_of_stream() && self.char_at_pointer() != '"' {
             if self.char_at_pointer() == '\n' {
                 return Err(ParseError::new(
@@ -163,7 +163,7 @@ impl<'a> TokenStream<'a> {
         Ok(result)
     }
 
-    fn end_of_stream(&self) -> bool {
+    pub fn end_of_stream(&self) -> bool {
         !(self.source.len() > self.pointer)
     }
 

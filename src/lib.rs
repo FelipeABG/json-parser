@@ -1,7 +1,4 @@
 mod ast;
 mod error;
+mod parser;
 mod token;
-
-pub struct Json;
-
-impl Json {}

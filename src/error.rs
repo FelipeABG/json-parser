@@ -14,6 +14,7 @@ pub enum ParseErrorKind {
     InvalidValue,
     UnterminatedString,
     EndOfStream,
+    NotAPrimitive,
 }
 
 impl ParseError {
